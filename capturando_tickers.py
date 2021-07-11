@@ -7,6 +7,7 @@ Created on Thu Feb 18 20:15:07 2021
 import requests
 import pandas as pd
 import re
+from selenium import webdriver
 
 
 def corrigindo_valores(df):
@@ -39,7 +40,7 @@ def busca_filtrada():
     corrigindo_valores(df=empresas_listadas)
     for i in range(len(empresas_listadas["Papel"])):
         if (
-            (empresas_listadas["Liq.2meses"][i] < 1000000) or
+            (empresas_listadas["Liq.2meses"][i] < 200000) or
             (empresas_listadas["EV/EBIT"][i] <= 0)
         ):
             empresas_listadas = empresas_listadas.drop(i)
@@ -127,3 +128,30 @@ def ranquear(fundamentus):
         )
 
     return(df_final.reset_index(drop=True))
+
+
+def remover_seguradoras_e_rj(fundamentus):
+    comprar = []
+    navegador = webdriver.Chrome()
+
+    for i in range(len(fundamentus["Papel"])):
+        ticker = fundamentus["Papel"][i]
+
+        navegador.get("https://statusinvest.com.br/acoes/" + ticker)
+
+        info = navegador.find_element_by_xpath(
+            '//*[@id="company-section"]/div/div[1]/div[2]'
+            ).text
+
+        segmento = navegador.find_element_by_xpath(
+         '//*[@id="company-section"]/div/div[3]/div/div[3]/div/div/div/a/strong'
+            ).text
+
+        if(("RECUPERAÇÃO JUDICIAL" in info) or ("Seguradoras" in segmento)):
+            print("não comprar: " + ticker)
+        else:
+            print("Comprar: " + ticker)
+            comprar.append(ticker)
+
+        if(len(comprar) >= 20):
+            return(comprar)
