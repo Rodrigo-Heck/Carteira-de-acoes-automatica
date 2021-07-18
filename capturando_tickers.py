@@ -42,6 +42,7 @@ def busca_filtrada():
         if (
             (empresas_listadas["Liq.2meses"][i] < 200000) or
             (empresas_listadas["EV/EBIT"][i] <= 0)
+
         ):
             empresas_listadas = empresas_listadas.drop(i)
     return(empresas_listadas.reset_index(drop=True))
@@ -82,57 +83,10 @@ def remover_papeis_repetidos(fundamentus):
     return(fundamentus.reset_index(drop=True))
 
 
-def ranquear(fundamentus):
-
-    evebit = pd.DataFrame(
-                    [
-                        fundamentus["Papel"],
-                        fundamentus["EV/EBIT"],
-                        fundamentus["ROIC"],
-                    ]
-                     ).transpose()
-
-    evebit = evebit.sort_values(
-        by="EV/EBIT", ascending=True
-        ).reset_index(drop=True)
-
-    evebit.insert(0, "index", evebit.index.tolist())
-
-    roic = pd.DataFrame([
-                   fundamentus["Papel"],
-                   fundamentus["EV/EBIT"],
-                   fundamentus["ROIC"]
-                   ]
-                    ).transpose()
-
-    roic = roic.sort_values(by="ROIC", ascending=False).reset_index(drop=True)
-    roic.insert(0, "index", roic.index.tolist())
-
-    evebit.index = evebit["Papel"]
-    roic.index = roic["Papel"]
-
-    inserir = []
-    for i in range(len(fundamentus["Papel"])):
-        papel = fundamentus["Papel"][i]
-
-        inserir.append([
-                 fundamentus["Papel"][i],
-                 evebit.loc[papel]["index"] + roic.loc[papel]["index"],
-                 fundamentus["EV/EBIT"][i],
-                 fundamentus["ROIC"][i]
-                        ])
-    colun = ["Papel", "Nota", "EV/EBIT", "ROIC"]
-    df_final = pd.DataFrame(columns=colun, data=inserir)
-    df_final = df_final.sort_values(
-        by="Nota", ascending=True
-        )
-
-    return(df_final.reset_index(drop=True))
-
-
 def remover_seguradoras_e_rj(fundamentus):
     comprar = []
     navegador = webdriver.Chrome()
+    contador = 0
 
     for i in range(len(fundamentus["Papel"])):
         ticker = fundamentus["Papel"][i]
@@ -148,10 +102,13 @@ def remover_seguradoras_e_rj(fundamentus):
             ).text
 
         if(("RECUPERAÇÃO JUDICIAL" in info) or ("Seguradoras" in segmento)):
-            print("não comprar: " + ticker)
+            print("nao comprar: ")
         else:
-            print("Comprar: " + ticker)
+            contador += 1
             comprar.append(ticker)
 
-        if(len(comprar) >= 20):
+        if(contador >= 20):
+            print("===========================")
             return(comprar)
+
+
